@@ -1,3 +1,6 @@
+/home/shura/projects/elefp/build/CMakeFiles/crypto.dir
 /home/shura/projects/elefp/build/CMakeFiles/test_kem.dir
+/home/shura/projects/elefp/build/CMakeFiles/crypto_test.dir
+/home/shura/projects/elefp/build/CMakeFiles/test.dir
 /home/shura/projects/elefp/build/CMakeFiles/edit_cache.dir
 /home/shura/projects/elefp/build/CMakeFiles/rebuild_cache.dir

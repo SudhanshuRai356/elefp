@@ -1,6 +1,9 @@
 # ninja log v6
-2	230	1754398313310687057	CMakeFiles/test_kem.dir/test/test_kem.cpp.o	9d121817e8ce4d44
-8	149	1754398659390230780	CMakeFiles/test_kem.dir/src/crypto/HKDF.cpp.o	3cf229a05bd8eb26
-8	152	1754398659388684944	CMakeFiles/test_kem.dir/src/crypto/AesGcm.cpp.o	dad56a677312e09b
-9	160	1754398659390578984	CMakeFiles/test_kem.dir/src/crypto/KeyExchange.cpp.o	10dd6a521665d91a
-160	298	1754398659540684944	test_kem	3f0b1defc8434d1c
+2	366	1754561842325595143	CMakeFiles/crypto.dir/src/crypto/KeyExchange.cpp.o	b3fcc2c056c9c6c2
+1	385	1754561842324162156	CMakeFiles/crypto.dir/src/crypto/AesGcm.cpp.o	6f33ae2ae485581d
+2	437	1754561842325789514	CMakeFiles/test_kem.dir/test/test_kem.cpp.o	9d121817e8ce4d44
+1	463	1754561842325317718	CMakeFiles/crypto.dir/src/crypto/HKDF.cpp.o	c9b3125266d02742
+1	60	1754561929914161622	libcrypto.a	72b988ef6ca97c42
+61	269	1754561929974161621	test_kem	9a26e9f330793221
+2	200	1754562369357158939	CMakeFiles/crypto_test.dir/test/crypto_test.cpp.o	24069910574910a5
+200	420	1754562369555158938	crypto_test	5552e23a50a25d84
