@@ -1,0 +1,2 @@
+/usr/bin/ar qc libcrypto.a CMakeFiles/crypto.dir/src/crypto/AesGcm.cpp.o CMakeFiles/crypto.dir/src/crypto/HKDF.cpp.o CMakeFiles/crypto.dir/src/crypto/KeyExchange.cpp.o
+/usr/bin/ranlib libcrypto.a
