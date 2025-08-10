@@ -18,7 +18,7 @@ public:
     SecureSession();
     vector<uint8_t> server_handle_public_key(const vector<uint8_t>& client_pk); // server handles client public key and returns its ciphertext for agreement
     void client_process_server_hello(const vector<uint8_t>& server_ct); //accepts the server's ct and derives the shared secret key
-    void set_client_keypair(const vector<uint8_t>&pk,vector<uint8_t>&sk);
+    void set_client_keypair(const vector<uint8_t>&pk,const vector<uint8_t>&sk);
     vector<uint8_t> encrypt_packet(const vector<uint8_t>& packet,const vector<uint8_t>& aad = {}); // encryption
     vector<uint8_t> decrypt_packet(const vector<uint8_t>& packet,const vector<uint8_t>& aad = {}); // decryption
     bool is_authenticated() const; // checks if the session is authenticated

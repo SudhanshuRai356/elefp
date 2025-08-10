@@ -88,6 +88,58 @@ build libcrypto.a: CXX_STATIC_LIBRARY_LINKER__crypto_ CMakeFiles/crypto.dir/src/
   TARGET_PDB = libcrypto.pdb
 
 # =============================================================================
+# Object build statements for STATIC_LIBRARY target transport
+
+
+#############################################
+# Order-only phony target for transport
+
+build cmake_object_order_depends_target_transport: phony || cmake_object_order_depends_target_crypto
+
+build CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o: CXX_COMPILER__transport_unscanned_ /home/shura/projects/elefp/src/transport/TransportUtil.cpp || cmake_object_order_depends_target_transport
+  DEP_FILE = CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o.d
+  FLAGS = -std=gnu++17
+  INCLUDES = -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include
+  OBJECT_DIR = CMakeFiles/transport.dir
+  OBJECT_FILE_DIR = CMakeFiles/transport.dir/src/transport
+  TARGET_COMPILE_PDB = CMakeFiles/transport.dir/transport.pdb
+  TARGET_PDB = libtransport.pdb
+
+build CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o: CXX_COMPILER__transport_unscanned_ /home/shura/projects/elefp/src/transport/SecureSession.cpp || cmake_object_order_depends_target_transport
+  DEP_FILE = CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o.d
+  FLAGS = -std=gnu++17
+  INCLUDES = -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include
+  OBJECT_DIR = CMakeFiles/transport.dir
+  OBJECT_FILE_DIR = CMakeFiles/transport.dir/src/transport
+  TARGET_COMPILE_PDB = CMakeFiles/transport.dir/transport.pdb
+  TARGET_PDB = libtransport.pdb
+
+build CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o: CXX_COMPILER__transport_unscanned_ /home/shura/projects/elefp/src/transport/SessionManager.cpp || cmake_object_order_depends_target_transport
+  DEP_FILE = CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o.d
+  FLAGS = -std=gnu++17
+  INCLUDES = -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include
+  OBJECT_DIR = CMakeFiles/transport.dir
+  OBJECT_FILE_DIR = CMakeFiles/transport.dir/src/transport
+  TARGET_COMPILE_PDB = CMakeFiles/transport.dir/transport.pdb
+  TARGET_PDB = libtransport.pdb
+
+
+# =============================================================================
+# Link build statements for STATIC_LIBRARY target transport
+
+
+#############################################
+# Link the static library libtransport.a
+
+build libtransport.a: CXX_STATIC_LIBRARY_LINKER__transport_ CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o || libcrypto.a
+  OBJECT_DIR = CMakeFiles/transport.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_COMPILE_PDB = CMakeFiles/transport.dir/transport.pdb
+  TARGET_FILE = libtransport.a
+  TARGET_PDB = libtransport.pdb
+
+# =============================================================================
 # Object build statements for EXECUTABLE target test_kem
 
 
@@ -202,6 +254,8 @@ build rebuild_cache: phony CMakeFiles/rebuild_cache.util
 
 build crypto: phony libcrypto.a
 
+build transport: phony libtransport.a
+
 # =============================================================================
 # Folder targets.
 
@@ -210,7 +264,7 @@ build crypto: phony libcrypto.a
 #############################################
 # Folder: /home/shura/projects/elefp/build
 
-build all: phony libcrypto.a test_kem crypto_test
+build all: phony libcrypto.a libtransport.a test_kem crypto_test
 
 # =============================================================================
 # Built-in targets

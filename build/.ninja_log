@@ -1,9 +1,13 @@
 # ninja log v6
-2	366	1754561842325595143	CMakeFiles/crypto.dir/src/crypto/KeyExchange.cpp.o	b3fcc2c056c9c6c2
-1	385	1754561842324162156	CMakeFiles/crypto.dir/src/crypto/AesGcm.cpp.o	6f33ae2ae485581d
-2	437	1754561842325789514	CMakeFiles/test_kem.dir/test/test_kem.cpp.o	9d121817e8ce4d44
-1	463	1754561842325317718	CMakeFiles/crypto.dir/src/crypto/HKDF.cpp.o	c9b3125266d02742
-1	60	1754561929914161622	libcrypto.a	72b988ef6ca97c42
-61	269	1754561929974161621	test_kem	9a26e9f330793221
-2	200	1754562369357158939	CMakeFiles/crypto_test.dir/test/crypto_test.cpp.o	24069910574910a5
-200	420	1754562369555158938	crypto_test	5552e23a50a25d84
+4	396	1754819403197677747	CMakeFiles/crypto_test.dir/test/crypto_test.cpp.o	24069910574910a5
+3	397	1754819403195371958	CMakeFiles/crypto.dir/src/crypto/KeyExchange.cpp.o	b3fcc2c056c9c6c2
+4	425	1754819403197456149	CMakeFiles/test_kem.dir/test/test_kem.cpp.o	9d121817e8ce4d44
+1	426	1754819403193371958	CMakeFiles/crypto.dir/src/crypto/AesGcm.cpp.o	6f33ae2ae485581d
+3	506	1754819403196593583	CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o	ce62579c8fa12bfa
+3	581	1754819403196887978	CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o	64a31fd331fc5dd0
+2	640	1754819403194371958	CMakeFiles/crypto.dir/src/crypto/HKDF.cpp.o	c9b3125266d02742
+3	65	1754819492764371412	libcrypto.a	72b988ef6ca97c42
+5	306	1754819518254371256	test_kem	9a26e9f330793221
+5	307	1754819518255703695	crypto_test	5552e23a50a25d84
+4	553	1754819518253371256	CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o	bd553a32806cfda5
+553	644	1754819518802371253	libtransport.a	69257dc3e097275c
