@@ -35,6 +35,21 @@ target_link_libraries(crypto_test
     PRIVATE crypto
 )
 
+# UDP test harness (client & server) in test/
+add_executable(udp_server
+    test/udp_server.cpp
+)
+target_link_libraries(udp_server
+    PRIVATE transport crypto
+)
+
+add_executable(udp_client
+    test/udp_client.cpp
+)
+target_link_libraries(udp_client
+    PRIVATE transport crypto
+)
+
 # CTEST integration
 enable_testing()
 add_test(NAME TestKem COMMAND test_kem)

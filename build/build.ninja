@@ -213,6 +213,80 @@ build crypto_test: CXX_EXECUTABLE_LINKER__crypto_test_ CMakeFiles/crypto_test.di
   TARGET_FILE = crypto_test
   TARGET_PDB = crypto_test.pdb
 
+# =============================================================================
+# Object build statements for EXECUTABLE target udp_server
+
+
+#############################################
+# Order-only phony target for udp_server
+
+build cmake_object_order_depends_target_udp_server: phony || cmake_object_order_depends_target_crypto cmake_object_order_depends_target_transport
+
+build CMakeFiles/udp_server.dir/test/udp_server.cpp.o: CXX_COMPILER__udp_server_unscanned_ /home/shura/projects/elefp/test/udp_server.cpp || cmake_object_order_depends_target_udp_server
+  DEP_FILE = CMakeFiles/udp_server.dir/test/udp_server.cpp.o.d
+  FLAGS = -std=gnu++17
+  INCLUDES = -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include
+  OBJECT_DIR = CMakeFiles/udp_server.dir
+  OBJECT_FILE_DIR = CMakeFiles/udp_server.dir/test
+  TARGET_COMPILE_PDB = CMakeFiles/udp_server.dir/
+  TARGET_PDB = udp_server.pdb
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target udp_server
+
+
+#############################################
+# Link the executable udp_server
+
+build udp_server: CXX_EXECUTABLE_LINKER__udp_server_ CMakeFiles/udp_server.dir/test/udp_server.cpp.o | libtransport.a libcrypto.a /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a /usr/lib/libssl.so /usr/lib/libcrypto.so || libcrypto.a libtransport.a
+  DEP_FILE = CMakeFiles/udp_server.dir/link.d
+  LINK_FLAGS = -Wl,--dependency-file=CMakeFiles/udp_server.dir/link.d
+  LINK_LIBRARIES = libtransport.a  libcrypto.a  /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a  /usr/lib/libssl.so  /usr/lib/libcrypto.so
+  OBJECT_DIR = CMakeFiles/udp_server.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_COMPILE_PDB = CMakeFiles/udp_server.dir/
+  TARGET_FILE = udp_server
+  TARGET_PDB = udp_server.pdb
+
+# =============================================================================
+# Object build statements for EXECUTABLE target udp_client
+
+
+#############################################
+# Order-only phony target for udp_client
+
+build cmake_object_order_depends_target_udp_client: phony || cmake_object_order_depends_target_crypto cmake_object_order_depends_target_transport
+
+build CMakeFiles/udp_client.dir/test/udp_client.cpp.o: CXX_COMPILER__udp_client_unscanned_ /home/shura/projects/elefp/test/udp_client.cpp || cmake_object_order_depends_target_udp_client
+  DEP_FILE = CMakeFiles/udp_client.dir/test/udp_client.cpp.o.d
+  FLAGS = -std=gnu++17
+  INCLUDES = -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include
+  OBJECT_DIR = CMakeFiles/udp_client.dir
+  OBJECT_FILE_DIR = CMakeFiles/udp_client.dir/test
+  TARGET_COMPILE_PDB = CMakeFiles/udp_client.dir/
+  TARGET_PDB = udp_client.pdb
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target udp_client
+
+
+#############################################
+# Link the executable udp_client
+
+build udp_client: CXX_EXECUTABLE_LINKER__udp_client_ CMakeFiles/udp_client.dir/test/udp_client.cpp.o | libtransport.a libcrypto.a /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a /usr/lib/libssl.so /usr/lib/libcrypto.so || libcrypto.a libtransport.a
+  DEP_FILE = CMakeFiles/udp_client.dir/link.d
+  LINK_FLAGS = -Wl,--dependency-file=CMakeFiles/udp_client.dir/link.d
+  LINK_LIBRARIES = libtransport.a  libcrypto.a  /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a  /usr/lib/libssl.so  /usr/lib/libcrypto.so
+  OBJECT_DIR = CMakeFiles/udp_client.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_COMPILE_PDB = CMakeFiles/udp_client.dir/
+  TARGET_FILE = udp_client
+  TARGET_PDB = udp_client.pdb
+
 
 #############################################
 # Utility command for test
@@ -264,7 +338,7 @@ build transport: phony libtransport.a
 #############################################
 # Folder: /home/shura/projects/elefp/build
 
-build all: phony libcrypto.a libtransport.a test_kem crypto_test
+build all: phony libcrypto.a libtransport.a test_kem crypto_test udp_server udp_client
 
 # =============================================================================
 # Built-in targets
