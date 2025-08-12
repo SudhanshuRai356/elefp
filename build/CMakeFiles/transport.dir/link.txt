@@ -1,0 +1,2 @@
+/usr/bin/ar qc libtransport.a CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o
+/usr/bin/ranlib libtransport.a

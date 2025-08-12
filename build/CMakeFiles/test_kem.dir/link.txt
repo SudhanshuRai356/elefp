@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/test_kem.dir/link.d CMakeFiles/test_kem.dir/test/test_kem.cpp.o -o test_kem  libcrypto.a /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a /usr/lib/libssl.so /usr/lib/libcrypto.so

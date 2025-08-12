@@ -13,16 +13,16 @@ int main(){
         asio::ip::udp::endpoint endpt(asio::ip::make_address("127.0.0.1"), 9000);
         transport::SecureSession session;
         crypto::KeyExchange kem;
-        auto keypair = kem.generate_keypair();
+        auto keypair = kem.generate_keypair(); // generating keypair
         session.set_client_keypair(keypair.first, keypair.second);
         vector<uint8_t>hello;
         hello.push_back(0x01);
-        hello.insert(hello.end(),keypair.first.begin(), keypair.first.end());
+        hello.insert(hello.end(),keypair.first.begin(), keypair.first.end()); // sending client public key to server
         socket.send_to(asio::buffer(hello), endpt);
         cout << "Sent client public key to server." << endl;
         vector<uint8_t> recvbuff(8192);
         asio::ip::udp::endpoint sender_endpoint;
-        size_t len = socket.receive_from(asio::buffer(recvbuff), sender_endpoint);
+        size_t len = socket.receive_from(asio::buffer(recvbuff), sender_endpoint);//recieving server ciphertext and shared secret
         cout << "Received " << len << " bytes from server." << endl;
         if(len<2||recvbuff[0]!=0x02){
             cerr << "Invalid response from server." << endl;
@@ -32,8 +32,8 @@ int main(){
         session.client_process_server_hello(server_ct);
         cout<<"Server hello was successful."<<endl;
         string msg = "dheeraj bkl hai!";
-        vector<uint8_t>pkt=session.encrypt_packet(vector<uint8_t>(msg.begin(), msg.end()));
-        socket.send_to(asio::buffer(pkt), endpt);
+        vector<uint8_t>pkt=session.encrypt_packet(vector<uint8_t>(msg.begin(), msg.end())); // encrypting the message
+        socket.send_to(asio::buffer(pkt), endpt); // sending encrypted message
         cout << "Sent encrypted packet to server." << endl;
         return 0;
     }

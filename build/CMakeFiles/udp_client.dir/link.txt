@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -Wl,--dependency-file=CMakeFiles/udp_client.dir/link.d CMakeFiles/udp_client.dir/test/udp_client.cpp.o -o udp_client  libtransport.a libcrypto.a /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a /usr/lib/libssl.so /usr/lib/libcrypto.so

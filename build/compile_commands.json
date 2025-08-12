@@ -1,0 +1,62 @@
+[
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/crypto.dir/src/crypto/AesGcm.cpp.o -c /home/shura/projects/elefp/src/crypto/AesGcm.cpp",
+  "file": "/home/shura/projects/elefp/src/crypto/AesGcm.cpp",
+  "output": "CMakeFiles/crypto.dir/src/crypto/AesGcm.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/crypto.dir/src/crypto/HKDF.cpp.o -c /home/shura/projects/elefp/src/crypto/HKDF.cpp",
+  "file": "/home/shura/projects/elefp/src/crypto/HKDF.cpp",
+  "output": "CMakeFiles/crypto.dir/src/crypto/HKDF.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/crypto.dir/src/crypto/KeyExchange.cpp.o -c /home/shura/projects/elefp/src/crypto/KeyExchange.cpp",
+  "file": "/home/shura/projects/elefp/src/crypto/KeyExchange.cpp",
+  "output": "CMakeFiles/crypto.dir/src/crypto/KeyExchange.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o -c /home/shura/projects/elefp/src/transport/TransportUtil.cpp",
+  "file": "/home/shura/projects/elefp/src/transport/TransportUtil.cpp",
+  "output": "CMakeFiles/transport.dir/src/transport/TransportUtil.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o -c /home/shura/projects/elefp/src/transport/SecureSession.cpp",
+  "file": "/home/shura/projects/elefp/src/transport/SecureSession.cpp",
+  "output": "CMakeFiles/transport.dir/src/transport/SecureSession.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o -c /home/shura/projects/elefp/src/transport/SessionManager.cpp",
+  "file": "/home/shura/projects/elefp/src/transport/SessionManager.cpp",
+  "output": "CMakeFiles/transport.dir/src/transport/SessionManager.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/test_kem.dir/test/test_kem.cpp.o -c /home/shura/projects/elefp/test/test_kem.cpp",
+  "file": "/home/shura/projects/elefp/test/test_kem.cpp",
+  "output": "CMakeFiles/test_kem.dir/test/test_kem.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/crypto_test.dir/test/crypto_test.cpp.o -c /home/shura/projects/elefp/test/crypto_test.cpp",
+  "file": "/home/shura/projects/elefp/test/crypto_test.cpp",
+  "output": "CMakeFiles/crypto_test.dir/test/crypto_test.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/udp_server.dir/test/udp_server.cpp.o -c /home/shura/projects/elefp/test/udp_server.cpp",
+  "file": "/home/shura/projects/elefp/test/udp_server.cpp",
+  "output": "CMakeFiles/udp_server.dir/test/udp_server.cpp.o"
+},
+{
+  "directory": "/home/shura/projects/elefp/build",
+  "command": "/usr/bin/c++  -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include -g -std=gnu++17 -o CMakeFiles/udp_client.dir/test/udp_client.cpp.o -c /home/shura/projects/elefp/test/udp_client.cpp",
+  "file": "/home/shura/projects/elefp/test/udp_client.cpp",
+  "output": "CMakeFiles/udp_client.dir/test/udp_client.cpp.o"
+}
+]

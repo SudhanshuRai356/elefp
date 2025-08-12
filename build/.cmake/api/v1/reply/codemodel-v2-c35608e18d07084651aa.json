@@ -1,0 +1,105 @@
+{
+	"configurations" : 
+	[
+		{
+			"directories" : 
+			[
+				{
+					"build" : ".",
+					"jsonFile" : "directory-.-Debug-f5ebdc15457944623624.json",
+					"minimumCMakeVersion" : 
+					{
+						"string" : "3.16"
+					},
+					"projectIndex" : 0,
+					"source" : ".",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5
+					]
+				}
+			],
+			"name" : "Debug",
+			"projects" : 
+			[
+				{
+					"directoryIndexes" : 
+					[
+						0
+					],
+					"name" : "elefp",
+					"targetIndexes" : 
+					[
+						0,
+						1,
+						2,
+						3,
+						4,
+						5
+					]
+				}
+			],
+			"targets" : 
+			[
+				{
+					"directoryIndex" : 0,
+					"id" : "crypto::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-crypto-Debug-ddac1736e5bd48616bad.json",
+					"name" : "crypto",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "crypto_test::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-crypto_test-Debug-b79e1919c7e64df236d5.json",
+					"name" : "crypto_test",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "test_kem::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-test_kem-Debug-5b36a3faf3e8bfe2d8f8.json",
+					"name" : "test_kem",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "transport::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-transport-Debug-9e1deff8486d664e8231.json",
+					"name" : "transport",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_client::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_client-Debug-ab1f3880872f639df321.json",
+					"name" : "udp_client",
+					"projectIndex" : 0
+				},
+				{
+					"directoryIndex" : 0,
+					"id" : "udp_server::@6890427a1f51a3e7e1df",
+					"jsonFile" : "target-udp_server-Debug-9eb6e58e0a8555e82408.json",
+					"name" : "udp_server",
+					"projectIndex" : 0
+				}
+			]
+		}
+	],
+	"kind" : "codemodel",
+	"paths" : 
+	{
+		"build" : "/home/shura/projects/elefp/build",
+		"source" : "/home/shura/projects/elefp"
+	},
+	"version" : 
+	{
+		"major" : 2,
+		"minor" : 8
+	}
+}
