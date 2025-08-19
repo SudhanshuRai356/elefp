@@ -49,6 +49,12 @@ add_executable(udp_client
 target_link_libraries(udp_client
     PRIVATE transport crypto
 )
+add_executable(multlead_test
+    test/multlead_test.cpp
+)
+target_link_libraries(multlead_test
+    PRIVATE transport crypto
+)
 
 # CTEST integration
 enable_testing()
