@@ -287,6 +287,43 @@ build udp_client: CXX_EXECUTABLE_LINKER__udp_client_ CMakeFiles/udp_client.dir/t
   TARGET_FILE = udp_client
   TARGET_PDB = udp_client.pdb
 
+# =============================================================================
+# Object build statements for EXECUTABLE target multlead_test
+
+
+#############################################
+# Order-only phony target for multlead_test
+
+build cmake_object_order_depends_target_multlead_test: phony || cmake_object_order_depends_target_crypto cmake_object_order_depends_target_transport
+
+build CMakeFiles/multlead_test.dir/test/multlead_test.cpp.o: CXX_COMPILER__multlead_test_unscanned_ /home/shura/projects/elefp/test/multlead_test.cpp || cmake_object_order_depends_target_multlead_test
+  DEP_FILE = CMakeFiles/multlead_test.dir/test/multlead_test.cpp.o.d
+  FLAGS = -std=gnu++17
+  INCLUDES = -I/home/shura/projects/elefp/include -I/home/shura/projects/elefp/external/liboqs/build/include
+  OBJECT_DIR = CMakeFiles/multlead_test.dir
+  OBJECT_FILE_DIR = CMakeFiles/multlead_test.dir/test
+  TARGET_COMPILE_PDB = CMakeFiles/multlead_test.dir/
+  TARGET_PDB = multlead_test.pdb
+
+
+# =============================================================================
+# Link build statements for EXECUTABLE target multlead_test
+
+
+#############################################
+# Link the executable multlead_test
+
+build multlead_test: CXX_EXECUTABLE_LINKER__multlead_test_ CMakeFiles/multlead_test.dir/test/multlead_test.cpp.o | libtransport.a libcrypto.a /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a /usr/lib/libssl.so /usr/lib/libcrypto.so || libcrypto.a libtransport.a
+  DEP_FILE = CMakeFiles/multlead_test.dir/link.d
+  LINK_FLAGS = -Wl,--dependency-file=CMakeFiles/multlead_test.dir/link.d
+  LINK_LIBRARIES = libtransport.a  libcrypto.a  /home/shura/projects/elefp/external/liboqs/build/lib/liboqs.a  /usr/lib/libssl.so  /usr/lib/libcrypto.so
+  OBJECT_DIR = CMakeFiles/multlead_test.dir
+  POST_BUILD = :
+  PRE_LINK = :
+  TARGET_COMPILE_PDB = CMakeFiles/multlead_test.dir/
+  TARGET_FILE = multlead_test
+  TARGET_PDB = multlead_test.pdb
+
 
 #############################################
 # Utility command for test
@@ -338,7 +375,7 @@ build transport: phony libtransport.a
 #############################################
 # Folder: /home/shura/projects/elefp/build
 
-build all: phony libcrypto.a libtransport.a test_kem crypto_test udp_server udp_client
+build all: phony libcrypto.a libtransport.a test_kem crypto_test udp_server udp_client multlead_test
 
 # =============================================================================
 # Built-in targets

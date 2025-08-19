@@ -4,6 +4,7 @@
 /home/shura/projects/elefp/build/CMakeFiles/crypto_test.dir
 /home/shura/projects/elefp/build/CMakeFiles/udp_server.dir
 /home/shura/projects/elefp/build/CMakeFiles/udp_client.dir
+/home/shura/projects/elefp/build/CMakeFiles/multlead_test.dir
 /home/shura/projects/elefp/build/CMakeFiles/test.dir
 /home/shura/projects/elefp/build/CMakeFiles/edit_cache.dir
 /home/shura/projects/elefp/build/CMakeFiles/rebuild_cache.dir
