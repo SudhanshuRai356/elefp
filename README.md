@@ -214,7 +214,7 @@ the core crypto and vpn functionality is solid, just needs polish and platform s
 
 ## license  
 
-[whatever license you want]
+MIT License 
 
 ---
 
