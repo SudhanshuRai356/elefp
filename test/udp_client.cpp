@@ -31,7 +31,7 @@ int main(){
         vector<uint8_t> server_ct(recvbuff.begin() + 1, recvbuff.begin() + len);
         session.client_process_server_hello(server_ct);
         cout<<"Server hello was successful."<<endl;
-        string msg = "dheeraj bkl hai!";
+        string msg = "This is a trial message";
         vector<uint8_t>pkt=session.encrypt_packet(vector<uint8_t>(msg.begin(), msg.end())); // encrypting the message
         socket.send_to(asio::buffer(pkt), endpt); // sending encrypted message
         cout << "Sent encrypted packet to server." << endl;
