@@ -83,10 +83,6 @@ bool ConfigManager::load_client_config(const string& file_path, ClientConfig& co
     
     return true;  // client config loaded
 }
-    config.log_to_console = get_bool_value("log_to_console", true);
-    
-    return true;
-}
 
 bool ConfigManager::parse_config_file(const std::string& file_path) {
     std::ifstream file(file_path);
@@ -137,20 +133,20 @@ bool ConfigManager::parse_config_file(const std::string& file_path) {
         // Expand environment variables
         value = expand_environment_variables(value);
         
-        config_values_[key] = value;
+        values[key] = value;
     }
     
     return true;
 }
 
 std::string ConfigManager::get_string_value(const std::string& key, const std::string& default_value) const {
-    auto it = config_values_.find(key);
-    return (it != config_values_.end()) ? it->second : default_value;
+    auto it = values.find(key);
+    return (it != values.end()) ? it->second : default_value;
 }
 
 int ConfigManager::get_int_value(const std::string& key, int default_value) const {
-    auto it = config_values_.find(key);
-    if (it != config_values_.end()) {
+    auto it = values.find(key);
+    if (it != values.end()) {
         try {
             return std::stoi(it->second);
         } catch (const std::exception&) {
@@ -161,8 +157,8 @@ int ConfigManager::get_int_value(const std::string& key, int default_value) cons
 }
 
 bool ConfigManager::get_bool_value(const std::string& key, bool default_value) const {
-    auto it = config_values_.find(key);
-    if (it != config_values_.end()) {
+    auto it = values.find(key);
+    if (it != values.end()) {
         std::string value = it->second;
         std::transform(value.begin(), value.end(), value.begin(), ::tolower);
         return (value == "true" || value == "1" || value == "yes" || value == "on");
@@ -171,8 +167,8 @@ bool ConfigManager::get_bool_value(const std::string& key, bool default_value) c
 }
 
 uint16_t ConfigManager::get_uint16_value(const std::string& key, uint16_t default_value) const {
-    auto it = config_values_.find(key);
-    if (it != config_values_.end()) {
+    auto it = values.find(key);
+    if (it != values.end()) {
         try {
             int value = std::stoi(it->second);
             if (value >= 0 && value <= 65535) {
@@ -185,8 +181,8 @@ uint16_t ConfigManager::get_uint16_value(const std::string& key, uint16_t defaul
 }
 
 uint32_t ConfigManager::get_uint32_value(const std::string& key, uint32_t default_value) const {
-    auto it = config_values_.find(key);
-    if (it != config_values_.end()) {
+    auto it = values.find(key);
+    if (it != values.end()) {
         try {
             return std::stoul(it->second);
         } catch (const std::exception&) {
@@ -198,8 +194,8 @@ uint32_t ConfigManager::get_uint32_value(const std::string& key, uint32_t defaul
 
 std::vector<std::string> ConfigManager::get_string_list_value(const std::string& key) const {
     std::vector<std::string> result;
-    auto it = config_values_.find(key);
-    if (it != config_values_.end()) {
+    auto it = values.find(key);
+    if (it != values.end()) {
         std::stringstream ss(it->second);
         std::string item;
         while (std::getline(ss, item, ',')) {
