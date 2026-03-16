@@ -126,9 +126,11 @@ private:
     void remove_client_session(const std::string& client_id);
     
     // Packet processing
-    void process_key_exchange(const std::vector<uint8_t>& data, 
+    void process_key_exchange(const std::vector<uint8_t>& data,
                              const asio::ip::udp::endpoint& endpoint);
-    void process_vpn_packet(const std::vector<uint8_t>& data, 
+    void process_client_auth(const std::vector<uint8_t>& data,
+                             const asio::ip::udp::endpoint& endpoint);
+    void process_vpn_packet(const std::vector<uint8_t>& data,
                            const asio::ip::udp::endpoint& endpoint);
     
     void route_packet_to_client(const std::vector<uint8_t>& packet, 

@@ -10,7 +10,7 @@
 #include <array>
 using namespace std;
 namespace transport {
-    SecureSession::SecureSession():client_public_key(), client_secret_key(), session_key(), authenticated(false), send_counter(0), receive_counter(0) {}
+    SecureSession::SecureSession():client_public_key(), client_secret_key(), session_key(), authenticated(false), send_counter(0), receive_counter(0), dilithium_pk(), dilithium_sk(), peer_dilithium_pk(), handshake_transcript() {}
     array<uint8_t,12> SecureSession::make_nonce(uint64_t counter){
         return util::make_nonce(counter); // just calling the nonce method from util because of prior wrong placement of the function
     }
@@ -123,5 +123,108 @@ namespace transport {
     }
     bool SecureSession::is_authenticated() const {
         return authenticated;
+    }
+    void SecureSession::generate_dilithium_keys() {
+        auto kp = crypto::KeyExchange::generate_dilithium_keypair();
+        dilithium_pk = kp.first;
+        dilithium_sk = kp.second;
+    }
+    void SecureSession::set_dilithium_keypair(const vector<uint8_t>& pk, const vector<uint8_t>& sk) {
+        dilithium_pk = pk;
+        dilithium_sk = sk;
+    }
+    vector<uint8_t> SecureSession::server_handle_public_key_authenticated(const vector<uint8_t>& client_pk, const vector<uint8_t>& client_dili_pk) {
+        if(client_pk.empty())
+            throw runtime_error("the client public key is empty");
+        if(client_dili_pk.empty())
+            throw runtime_error("the client dilithium public key is empty");
+        // generate our own dilithium keys if not already set
+        if(dilithium_pk.empty())
+            generate_dilithium_keys();
+        // store peer dilithium pk
+        peer_dilithium_pk = client_dili_pk;
+        // do the normal kyber encapsulation
+        auto pair_ct_ss = crypto::KeyExchange::encapsulate(client_pk);
+        vector<uint8_t> ct = pair_ct_ss.first;
+        vector<uint8_t> ss = pair_ct_ss.second;
+        // build transcript = client_pk || ct for signing
+        vector<uint8_t> transcript;
+        transcript.insert(transcript.end(), client_pk.begin(), client_pk.end());
+        transcript.insert(transcript.end(), ct.begin(), ct.end());
+        // store transcript for later client signature verification
+        handshake_transcript = transcript;
+        // sign the transcript with our dilithium sk
+        vector<uint8_t> signature = crypto::KeyExchange::sign_handshake_transcript(dilithium_sk, transcript);
+        // derive session key using HKDF with signature as salt for stronger binding
+        crypto::HKDF hkdf;
+        vector<uint8_t> info = {'s', 'e', 'r', 'v', 'e', 'r'};
+        session_key = hkdf.derive(ss, signature, info, 32);
+        if(session_key.size() != 32)
+            throw runtime_error("session key derivation failed");
+        // pack response: ct_len(4) || ct || dilithium_pk || signature
+        vector<uint8_t> response;
+        uint32_t ct_len = static_cast<uint32_t>(ct.size());
+        response.push_back(static_cast<uint8_t>((ct_len >> 24) & 0xFF));
+        response.push_back(static_cast<uint8_t>((ct_len >> 16) & 0xFF));
+        response.push_back(static_cast<uint8_t>((ct_len >> 8) & 0xFF));
+        response.push_back(static_cast<uint8_t>(ct_len & 0xFF));
+        response.insert(response.end(), ct.begin(), ct.end());
+        response.insert(response.end(), dilithium_pk.begin(), dilithium_pk.end());
+        response.insert(response.end(), signature.begin(), signature.end());
+        // dont set authenticated yet - wait for client signature verification
+        send_counter = 0;
+        receive_counter = 0;
+        return response;
+    }
+    vector<uint8_t> SecureSession::client_process_server_hello_authenticated(
+        const vector<uint8_t>& server_ct,
+        const vector<uint8_t>& server_dili_pk,
+        const vector<uint8_t>& server_signature,
+        const vector<uint8_t>& original_client_pk
+    ) {
+        if(client_secret_key.empty())
+            throw runtime_error("the client secret key is empty");
+        if(server_ct.empty())
+            throw runtime_error("the server ciphertext is empty");
+        if(server_dili_pk.empty())
+            throw runtime_error("the server dilithium pk is empty");
+        if(server_signature.empty())
+            throw runtime_error("the server signature is empty");
+        // store server dilithium pk
+        peer_dilithium_pk = server_dili_pk;
+        // verify server signature over transcript = client_pk || ct
+        vector<uint8_t> transcript;
+        transcript.insert(transcript.end(), original_client_pk.begin(), original_client_pk.end());
+        transcript.insert(transcript.end(), server_ct.begin(), server_ct.end());
+        if(!crypto::KeyExchange::verify_handshake_signature(server_dili_pk, server_signature, transcript))
+            throw runtime_error("server signature verification failed - possible MITM");
+        // decapsulate to get shared secret
+        vector<uint8_t> ss = crypto::KeyExchange::decapsulate(server_ct, client_secret_key);
+        // derive session key using same HKDF with signature as salt
+        crypto::HKDF hkdf;
+        vector<uint8_t> info = {'s', 'e', 'r', 'v', 'e', 'r'};
+        session_key = hkdf.derive(ss, server_signature, info, 32);
+        if(session_key.size() != 32)
+            throw runtime_error("session key derivation failed");
+        // generate our own dilithium keys if not set, then sign the transcript for mutual auth
+        if(dilithium_pk.empty())
+            generate_dilithium_keys();
+        // client signs transcript = client_pk || ct (same data) to prove identity back to server
+        vector<uint8_t> client_sig = crypto::KeyExchange::sign_handshake_transcript(dilithium_sk, transcript);
+        authenticated = true;
+        send_counter = 0;
+        receive_counter = 0;
+        return client_sig;
+    }
+    bool SecureSession::server_verify_client_signature(const vector<uint8_t>& client_signature, const vector<uint8_t>& server_ct) {
+        if(peer_dilithium_pk.empty())
+            return false;
+        if(handshake_transcript.empty())
+            return false;
+        // verify client signature over the stored transcript (client_pk || ct)
+        if(!crypto::KeyExchange::verify_handshake_signature(peer_dilithium_pk, client_signature, handshake_transcript))
+            return false;
+        authenticated = true;
+        return true;
     }
 }

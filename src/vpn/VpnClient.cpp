@@ -126,53 +126,98 @@ bool VpnClient::initialize_tun_interface() {
 bool VpnClient::attempt_connection() {
     try {
         set_connection_state(ConnectionState::AUTHENTICATING);
-        
-        // Generate keypair
-        auto keypair = key_exchange_.generate_keypair();
+
+        // Generate Kyber keypair
+        auto keypair = crypto::KeyExchange::generate_keypair();
         secure_session_.set_client_keypair(keypair.first, keypair.second);
-        
-        // Send client hello (public key)
+
+        // Generate Dilithium keypair for authenticated handshake
+        secure_session_.generate_dilithium_keys();
+        const auto& dili_pk = secure_session_.get_dilithium_pk();
+
+        // Send client hello: 0x01 | kyber_pk | dilithium_pk
         std::vector<uint8_t> hello_msg;
         hello_msg.push_back(0x01); // Key exchange message type
         hello_msg.insert(hello_msg.end(), keypair.first.begin(), keypair.first.end());
-        
+        hello_msg.insert(hello_msg.end(), dili_pk.begin(), dili_pk.end());
+
         udp_socket_->send_to(asio::buffer(hello_msg), server_endpoint_);
         stats_.packets_sent.fetch_add(1);
         stats_.bytes_sent.fetch_add(hello_msg.size());
-        
-        // Wait for server response
+
+        // Wait for server response: 0x02 | ct_len(4) | ct | server_dili_pk | signature
         std::vector<uint8_t> server_response;
         if (!wait_for_server_response(0x02, server_response, config_.connect_timeout_seconds)) {
             set_error("Server hello timeout");
             return false;
         }
-        
-        // Process server hello (extract ciphertext)
-        std::vector<uint8_t> server_ct(server_response.begin() + 1, server_response.end());
-        secure_session_.client_process_server_hello(server_ct);
-        
-        std::cout << "Key exchange completed successfully" << std::endl;
-        
+
+        // Parse server response (skip msg type byte)
+        size_t offset = 1;
+        if (server_response.size() < offset + 4) {
+            set_error("Server response too short");
+            return false;
+        }
+        uint32_t ct_len = (static_cast<uint32_t>(server_response[offset]) << 24) |
+                          (static_cast<uint32_t>(server_response[offset+1]) << 16) |
+                          (static_cast<uint32_t>(server_response[offset+2]) << 8) |
+                          (static_cast<uint32_t>(server_response[offset+3]));
+        offset += 4;
+
+        if (server_response.size() < offset + ct_len) {
+            set_error("Server response truncated (ct)");
+            return false;
+        }
+        std::vector<uint8_t> server_ct(server_response.begin() + offset, server_response.begin() + offset + ct_len);
+        offset += ct_len;
+
+        // The rest is server_dili_pk + signature. We need to know the dili_pk size.
+        // ML-DSA-44 pk size = 1312 bytes
+        const size_t DILI_PK_SIZE = 1312;
+        if (server_response.size() < offset + DILI_PK_SIZE) {
+            set_error("Server response truncated (dili_pk)");
+            return false;
+        }
+        std::vector<uint8_t> server_dili_pk(server_response.begin() + offset, server_response.begin() + offset + DILI_PK_SIZE);
+        offset += DILI_PK_SIZE;
+
+        std::vector<uint8_t> server_signature(server_response.begin() + offset, server_response.end());
+
+        // Process authenticated server hello - verifies sig, derives session key, returns our sig
+        std::vector<uint8_t> client_sig = secure_session_.client_process_server_hello_authenticated(
+            server_ct, server_dili_pk, server_signature, keypair.first);
+
+        // Send client auth: 0x03 | client_dilithium_pk | client_signature
+        std::vector<uint8_t> auth_msg;
+        auth_msg.push_back(0x03);
+        auth_msg.insert(auth_msg.end(), dili_pk.begin(), dili_pk.end());
+        auth_msg.insert(auth_msg.end(), client_sig.begin(), client_sig.end());
+        udp_socket_->send_to(asio::buffer(auth_msg), server_endpoint_);
+        stats_.packets_sent.fetch_add(1);
+        stats_.bytes_sent.fetch_add(auth_msg.size());
+
+        std::cout << "Authenticated key exchange completed successfully" << std::endl;
+
         // For now, assign a static IP configuration
         // In a real implementation, this would come from the server
         assigned_ip_ = "10.8.0.2";
         assigned_netmask_ = "255.255.255.0";
         gateway_ip_ = "10.8.0.1";
-        
+
         // Configure TUN interface
         if (!tun_interface_->configure(assigned_ip_, assigned_netmask_, config_.tun_mtu)) {
             set_error("Failed to configure TUN interface");
             return false;
         }
-        
+
         // Configure routes
         if (!configure_routes()) {
             set_error("Failed to configure routes");
             return false;
         }
-        
+
         return true;
-        
+
     } catch (const std::exception& e) {
         set_error("Connection attempt failed: " + std::string(e.what()));
         return false;

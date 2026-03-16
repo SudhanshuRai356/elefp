@@ -70,7 +70,6 @@ private:
     // VPN components
     std::unique_ptr<TunInterface> tun_interface_;
     transport::SecureSession secure_session_;
-    crypto::KeyExchange key_exchange_;
     
     // Connection management
     std::string assigned_ip_;

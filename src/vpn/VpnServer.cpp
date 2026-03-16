@@ -286,18 +286,21 @@ void VpnServer::handle_client_packet(const std::vector<uint8_t>& data,
     if (msg_type == 0x01) {
         // Key exchange message
         process_key_exchange(data, endpoint);
+    } else if (msg_type == 0x03) {
+        // Client auth signature (Dilithium mutual auth)
+        process_client_auth(data, endpoint);
     } else if (msg_type == 0x10) {
         // VPN packet
         process_vpn_packet(data, endpoint);
     }
 }
 
-void VpnServer::process_key_exchange(const std::vector<uint8_t>& data, 
+void VpnServer::process_key_exchange(const std::vector<uint8_t>& data,
                                     const asio::ip::udp::endpoint& endpoint) {
     if (data.size() < 2) return;
-    
+
     std::string client_id = generate_client_id(endpoint);
-    
+
     // Check if client exists
     auto client_it = clients_.find(client_id);
     if (client_it == clients_.end()) {
@@ -309,36 +312,94 @@ void VpnServer::process_key_exchange(const std::vector<uint8_t>& data,
         }
         client_it = clients_.emplace(client_id, std::move(session)).first;
         endpoint_to_client_[generate_client_id(endpoint)] = client_id;
-        
-        std::cout << "New client connected: " << client_id 
+
+        std::cout << "New client connected: " << client_id
                   << " assigned IP: " << client_it->second->client_ip << std::endl;
     }
-    
+
     auto& client = *client_it->second;
     client.last_activity = std::chrono::steady_clock::now();
-    
+
     try {
-        // Extract client public key (skip message type byte)
-        std::vector<uint8_t> client_pk(data.begin() + 1, data.end());
-        
-        // Process key exchange
-        std::vector<uint8_t> server_ct = client.secure_session->server_handle_public_key(client_pk);
-        
-        // Send response
-        std::vector<uint8_t> response;
-        response.push_back(0x02); // Server hello
-        response.insert(response.end(), server_ct.begin(), server_ct.end());
-        
-        udp_socket_->send_to(asio::buffer(response), endpoint);
-        
-        client.authenticated = true;
-        stats_.packets_sent.fetch_add(1);
-        stats_.bytes_sent.fetch_add(response.size());
-        
-        std::cout << "Key exchange completed for " << client_id << std::endl;
-        
+        // Client hello format: 0x01 | kyber_pk(800) | dilithium_pk(1312)
+        const size_t KYBER_PK_SIZE = 800;
+        const size_t DILI_PK_SIZE = 1312;
+        size_t payload_size = data.size() - 1; // skip msg type
+
+        if (payload_size == KYBER_PK_SIZE + DILI_PK_SIZE) {
+            // Authenticated handshake path
+            std::vector<uint8_t> client_pk(data.begin() + 1, data.begin() + 1 + KYBER_PK_SIZE);
+            std::vector<uint8_t> client_dili_pk(data.begin() + 1 + KYBER_PK_SIZE, data.end());
+
+            // Server authenticated handshake - returns packed: ct_len(4) | ct | server_dili_pk | signature
+            std::vector<uint8_t> packed_response = client.secure_session->server_handle_public_key_authenticated(client_pk, client_dili_pk);
+
+            // Send response: 0x02 | packed_response
+            std::vector<uint8_t> response;
+            response.push_back(0x02);
+            response.insert(response.end(), packed_response.begin(), packed_response.end());
+
+            udp_socket_->send_to(asio::buffer(response), endpoint);
+            // Don't set authenticated yet - wait for client auth msg (0x03)
+            stats_.packets_sent.fetch_add(1);
+            stats_.bytes_sent.fetch_add(response.size());
+
+            std::cout << "Authenticated key exchange phase 1 completed for " << client_id << std::endl;
+        } else {
+            // Fallback: unauthenticated handshake (backward compat for old tests)
+            std::vector<uint8_t> client_pk(data.begin() + 1, data.end());
+            std::vector<uint8_t> server_ct = client.secure_session->server_handle_public_key(client_pk);
+
+            std::vector<uint8_t> response;
+            response.push_back(0x02);
+            response.insert(response.end(), server_ct.begin(), server_ct.end());
+
+            udp_socket_->send_to(asio::buffer(response), endpoint);
+            client.authenticated = true;
+            stats_.packets_sent.fetch_add(1);
+            stats_.bytes_sent.fetch_add(response.size());
+
+            std::cout << "Key exchange completed for " << client_id << std::endl;
+        }
+
     } catch (const std::exception& e) {
         std::cerr << "Key exchange error for " << client_id << ": " << e.what() << std::endl;
+        remove_client_session(client_id);
+    }
+}
+
+void VpnServer::process_client_auth(const std::vector<uint8_t>& data,
+                                    const asio::ip::udp::endpoint& endpoint) {
+    // Client auth format: 0x03 | client_dilithium_pk(1312) | client_signature(variable)
+    std::string client_id = generate_client_id(endpoint);
+
+    auto client_it = clients_.find(client_id);
+    if (client_it == clients_.end()) {
+        std::cerr << "Client auth from unknown client: " << client_id << std::endl;
+        return;
+    }
+
+    auto& client = *client_it->second;
+    client.last_activity = std::chrono::steady_clock::now();
+
+    try {
+        const size_t DILI_PK_SIZE = 1312;
+        if (data.size() < 1 + DILI_PK_SIZE + 1) {
+            std::cerr << "Client auth message too short from " << client_id << std::endl;
+            return;
+        }
+
+        std::vector<uint8_t> client_signature(data.begin() + 1 + DILI_PK_SIZE, data.end());
+
+        if (client.secure_session->server_verify_client_signature(client_signature, {})) {
+            client.authenticated = true;
+            std::cout << "Mutual authentication completed for " << client_id << std::endl;
+        } else {
+            std::cerr << "Client signature verification failed for " << client_id << std::endl;
+            remove_client_session(client_id);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Client auth error for " << client_id << ": " << e.what() << std::endl;
         remove_client_session(client_id);
     }
 }

@@ -121,6 +121,9 @@ add_executable(vpn_integration_test test/vpn_integration_test.cpp)
 target_include_directories(vpn_integration_test PRIVATE ${ASIO_INCLUDE_DIR})
 target_link_libraries(vpn_integration_test PRIVATE vpn transport crypto)
 
+add_executable(dilithium_test test/dilithium_test.cpp)
+target_link_libraries(dilithium_test PRIVATE transport crypto)
+
 # Install targets
 install(TARGETS vpn_server vpn_client 
     RUNTIME DESTINATION bin
@@ -137,11 +140,12 @@ add_test(NAME TestKem COMMAND test_kem)
 add_test(NAME CryptoUnit COMMAND crypto_test)
 add_test(NAME VpnComponents COMMAND vpn_component_test)
 add_test(NAME VpnIntegration COMMAND vpn_integration_test)
+add_test(NAME DilithiumTest COMMAND dilithium_test)
 
 # Custom targets for convenience
 add_custom_target(run-tests
     COMMAND ${CMAKE_CTEST_COMMAND} --verbose
-    DEPENDS crypto_test test_kem vpn_component_test vpn_integration_test
+    DEPENDS crypto_test test_kem vpn_component_test vpn_integration_test dilithium_test
 )
 
 add_custom_target(install-vpn
