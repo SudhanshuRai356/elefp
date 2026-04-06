@@ -193,25 +193,18 @@ PacketRouter::RouteResult PacketRouter::route_inbound_packet(vector<uint8_t>& pa
 }
 
 bool PacketRouter::route_to_internet(vector<uint8_t>& packet, const string& client_id) {
-    try {
-        update_nat_for_outbound(packet, client_id);  // setting up nat for this connection
-        update_ip_checksum(packet);                  // fixing the checksum after modifications
-        return true;
-    } catch (const exception&) {
-        return false;  // something went wrong with nat
-    }
+    (void)packet;
+    (void)client_id;
+    // Transport-level NAT is handled by kernel conntrack/iptables on the server.
+    // Do not rewrite L4 ports/checksums here or return traffic will not map correctly
+    // to client-side sockets.
+    return true;
 }
 
 bool PacketRouter::route_from_internet(vector<uint8_t>& packet) {
-    try {
-        bool result = update_nat_for_inbound(packet);  // checking if this packet has a nat entry
-        if (result) {
-            update_ip_checksum(packet);                // fixing checksum after nat translation
-        }
-        return result;
-    } catch (const exception&) {
-        return false;  // packet doesnt belong to any of our connections
-    }
+    (void)packet;
+    // Reverse translation is also handled by kernel conntrack/iptables.
+    return true;
 }
 
 void PacketRouter::update_nat_for_outbound(vector<uint8_t>& packet, const string& client_id) {

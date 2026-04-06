@@ -33,17 +33,57 @@ basically when you connect:
 you need some deps first:
 ```bash
 # ubuntu/debian
-sudo apt-get install build-essential cmake libssl-dev libasio-dev
-
-# clone and build  
-git clone <repo>
-cd elefp
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+sudo apt-get install build-essential cmake ninja-build pkg-config git libssl-dev libasio-dev
 ```
 
-liboqs is already included in external/ so you dont need to mess with that.
+### 1) get liboqs source in external/liboqs
+
+this repo tracks liboqs as a submodule, so from repo root run:
+
+```bash
+git submodule update --init --recursive external/liboqs
+```
+
+if you cloned without submodule metadata, clone directly:
+
+```bash
+git clone https://github.com/open-quantum-safe/liboqs external/liboqs
+```
+
+### 2) build static liboqs.a (required)
+
+the project links directly to this path:
+
+`external/liboqs/build/lib/liboqs.a`
+
+build it like this:
+
+```bash
+cmake -S external/liboqs -B external/liboqs/build -G Ninja \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DOQS_USE_OPENSSL=OFF \
+  -DOQS_ENABLE_KEM_KYBER=ON \
+  -DOQS_ENABLE_KEM_KYBER_512=ON \
+  -DOQS_DIST_BUILD=OFF
+
+cmake --build external/liboqs/build -j"$(nproc)"
+```
+
+quick sanity check:
+
+```bash
+test -f external/liboqs/build/lib/liboqs.a && echo "liboqs.a found"
+test -f external/liboqs/build/include/oqs/oqs.h && echo "liboqs headers found"
+```
+
+### 3) build elefp
+
+```bash
+cmake -S . -B build -G Ninja
+cmake --build build -j"$(nproc)"
+```
+
+if cmake complains about missing oqs headers or library, it means the liboqs build step above did not complete in `external/liboqs/build`.
 
 ## actually using it
 
@@ -214,7 +254,7 @@ the core crypto and vpn functionality is solid, just needs polish and platform s
 
 ## license  
 
-MIT License 
+MIT License. See [LICENSE](LICENSE). 
 
 ---
 
@@ -360,7 +400,7 @@ make run-tests
 
 ## License
 
-[License information]
+This project is licensed under the MIT License. See [LICENSE](LICENSE).
 
 ## Troubleshooting
 

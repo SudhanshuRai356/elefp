@@ -117,6 +117,7 @@ private:
     // Utility functions
     void set_connection_state(ConnectionState state);
     void set_error(const std::string& error);
+    bool is_expected_server_sender(const asio::ip::udp::endpoint& sender) const;
     bool wait_for_server_response(uint8_t expected_type, std::vector<uint8_t>& response, 
                                   uint32_t timeout_seconds = 10);
     

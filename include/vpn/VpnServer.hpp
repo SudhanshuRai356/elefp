@@ -82,6 +82,11 @@ private:
     std::unique_ptr<IpPool> ip_pool_;
     std::unique_ptr<PacketRouter> packet_router_;
     transport::SessionManager session_manager_;
+
+    // Internet forwarding state (for client internet access through server)
+    std::string internet_interface_;
+    std::string vpn_network_cidr_;
+    bool internet_access_configured_ = false;
     
     // Client management
     std::unordered_map<std::string, std::unique_ptr<ClientSession>> clients_;
@@ -110,6 +115,8 @@ private:
     bool initialize_ip_pool();
     bool initialize_packet_router();
     bool initialize_network_socket();
+    bool setup_internet_access();
+    void cleanup_internet_access();
     void start_worker_threads();
     void start_packet_processing_threads();
     

@@ -4,6 +4,97 @@
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
+#include <arpa/inet.h>
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+
+namespace {
+
+std::string trim_copy(const std::string& input) {
+    const auto first = input.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) {
+        return "";
+    }
+    const auto last = input.find_last_not_of(" \t\r\n");
+    return input.substr(first, last - first + 1);
+}
+
+std::string run_command_capture(const std::string& cmd) {
+    std::array<char, 256> buffer{};
+    std::string output;
+
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) {
+        return "";
+    }
+
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) {
+        output += buffer.data();
+    }
+
+    pclose(pipe);
+    return trim_copy(output);
+}
+
+bool run_quiet(const std::string& cmd) {
+    std::string wrapped = cmd + " >/dev/null 2>&1";
+    return std::system(wrapped.c_str()) == 0;
+}
+
+int netmask_to_prefix(const std::string& netmask) {
+    in_addr mask_addr{};
+    if (::inet_pton(AF_INET, netmask.c_str(), &mask_addr) != 1) {
+        return -1;
+    }
+
+    const uint32_t mask = ntohl(mask_addr.s_addr);
+    int prefix = 0;
+    bool saw_zero = false;
+    for (int bit = 31; bit >= 0; --bit) {
+        const bool is_one = (mask & (1u << bit)) != 0;
+        if (is_one) {
+            if (saw_zero) {
+                return -1;
+            }
+            ++prefix;
+        } else {
+            saw_zero = true;
+        }
+    }
+
+    return prefix;
+}
+
+std::string build_network_cidr(const std::string& ip, const std::string& netmask) {
+    in_addr ip_addr{};
+    in_addr mask_addr{};
+    if (::inet_pton(AF_INET, ip.c_str(), &ip_addr) != 1 ||
+        ::inet_pton(AF_INET, netmask.c_str(), &mask_addr) != 1) {
+        return "";
+    }
+
+    const uint32_t ip_host = ntohl(ip_addr.s_addr);
+    const uint32_t mask_host = ntohl(mask_addr.s_addr);
+    const uint32_t network_host = ip_host & mask_host;
+
+    in_addr network_addr{};
+    network_addr.s_addr = htonl(network_host);
+
+    char network_str[INET_ADDRSTRLEN] = {0};
+    if (::inet_ntop(AF_INET, &network_addr, network_str, sizeof(network_str)) == nullptr) {
+        return "";
+    }
+
+    const int prefix = netmask_to_prefix(netmask);
+    if (prefix < 0) {
+        return "";
+    }
+
+    return std::string(network_str) + "/" + std::to_string(prefix);
+}
+
+} // namespace
 
 namespace vpn {
 
@@ -48,6 +139,11 @@ bool VpnServer::start() {
     
     if (!initialize_network_socket()) {
         std::cerr << "Failed to initialize network socket" << std::endl;
+        return false;
+    }
+
+    if (config_.enable_internet_access && !setup_internet_access()) {
+        std::cerr << "Failed to configure internet forwarding/NAT" << std::endl;
         return false;
     }
     
@@ -105,6 +201,8 @@ void VpnServer::stop() {
             thread.join();
         }
     }
+
+    cleanup_internet_access();
     
     // Clean up resources
     tun_interface_->close();
@@ -157,6 +255,77 @@ bool VpnServer::initialize_network_socket() {
         std::cerr << "Socket initialization error: " << e.what() << std::endl;
         return false;
     }
+}
+
+bool VpnServer::setup_internet_access() {
+    vpn_network_cidr_ = build_network_cidr(config_.server_ip, config_.server_netmask);
+    if (vpn_network_cidr_.empty()) {
+        std::cerr << "Unable to compute VPN network CIDR from server config" << std::endl;
+        return false;
+    }
+
+    internet_interface_ = run_command_capture("ip -4 route show default | awk '{print $5; exit}'");
+    if (internet_interface_.empty()) {
+        std::cerr << "Unable to detect server default network interface" << std::endl;
+        return false;
+    }
+
+    // Enable IPv4 forwarding.
+    if (!run_quiet("sysctl -w net.ipv4.ip_forward=1")) {
+        std::cerr << "Warning: failed to enable net.ipv4.ip_forward" << std::endl;
+    }
+
+    const std::string& tun_if = tun_interface_->get_interface_name();
+
+    auto ensure_rule = [](const std::string& check_cmd, const std::string& add_cmd) -> bool {
+        if (run_quiet(check_cmd)) {
+            return true;
+        }
+        return run_quiet(add_cmd);
+    };
+
+    if (!ensure_rule(
+            "iptables -C FORWARD -i " + tun_if + " -o " + internet_interface_ + " -j ACCEPT",
+            "iptables -A FORWARD -i " + tun_if + " -o " + internet_interface_ + " -j ACCEPT")) {
+        std::cerr << "Failed to add FORWARD rule for VPN -> internet" << std::endl;
+        return false;
+    }
+
+    if (!ensure_rule(
+            "iptables -C FORWARD -i " + internet_interface_ + " -o " + tun_if +
+            " -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT",
+            "iptables -A FORWARD -i " + internet_interface_ + " -o " + tun_if +
+            " -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT")) {
+        std::cerr << "Failed to add FORWARD rule for internet -> VPN" << std::endl;
+        return false;
+    }
+
+    if (!ensure_rule(
+            "iptables -t nat -C POSTROUTING -s " + vpn_network_cidr_ + " -o " + internet_interface_ +
+            " -j MASQUERADE",
+            "iptables -t nat -A POSTROUTING -s " + vpn_network_cidr_ + " -o " + internet_interface_ +
+            " -j MASQUERADE")) {
+        std::cerr << "Failed to add NAT MASQUERADE rule" << std::endl;
+        return false;
+    }
+
+    internet_access_configured_ = true;
+    std::cout << "Internet forwarding enabled via interface " << internet_interface_ << std::endl;
+    return true;
+}
+
+void VpnServer::cleanup_internet_access() {
+    if (!internet_access_configured_ || internet_interface_.empty() || vpn_network_cidr_.empty() || !tun_interface_) {
+        return;
+    }
+
+    const std::string& tun_if = tun_interface_->get_interface_name();
+    run_quiet("iptables -t nat -D POSTROUTING -s " + vpn_network_cidr_ + " -o " + internet_interface_ + " -j MASQUERADE");
+    run_quiet("iptables -D FORWARD -i " + tun_if + " -o " + internet_interface_ + " -j ACCEPT");
+    run_quiet("iptables -D FORWARD -i " + internet_interface_ + " -o " + tun_if +
+              " -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT");
+
+    internet_access_configured_ = false;
 }
 
 void VpnServer::start_worker_threads() {
@@ -393,6 +562,35 @@ void VpnServer::process_client_auth(const std::vector<uint8_t>& data,
 
         if (client.secure_session->server_verify_client_signature(client_signature, {})) {
             client.authenticated = true;
+
+            // Send client network configuration:
+            // 0x04 | client_ip(4) | netmask(4) | gateway(4)
+            std::vector<uint8_t> config_msg;
+            config_msg.reserve(13);
+            config_msg.push_back(0x04);
+
+            auto append_ipv4 = [&config_msg](const std::string& ip_str) -> bool {
+                in_addr addr{};
+                if (::inet_pton(AF_INET, ip_str.c_str(), &addr) != 1) {
+                    return false;
+                }
+                const auto* raw = reinterpret_cast<const uint8_t*>(&addr.s_addr);
+                config_msg.insert(config_msg.end(), raw, raw + 4);
+                return true;
+            };
+
+            if (!append_ipv4(client.client_ip) ||
+                !append_ipv4(config_.server_netmask) ||
+                !append_ipv4(config_.gateway)) {
+                std::cerr << "Failed to encode client network configuration for " << client_id << std::endl;
+                remove_client_session(client_id);
+                return;
+            }
+
+            udp_socket_->send_to(asio::buffer(config_msg), endpoint);
+            stats_.packets_sent.fetch_add(1);
+            stats_.bytes_sent.fetch_add(config_msg.size());
+
             std::cout << "Mutual authentication completed for " << client_id << std::endl;
         } else {
             std::cerr << "Client signature verification failed for " << client_id << std::endl;

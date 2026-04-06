@@ -3,6 +3,91 @@
 #include <sstream>
 #include <fstream>
 #include <algorithm>
+#include <arpa/inet.h>
+#include <poll.h>
+#include <stdexcept>
+#include <array>
+#include <cstdio>
+#include <cstdlib>
+
+namespace {
+
+std::string trim_copy(const std::string& input) {
+    const auto first = input.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) {
+        return "";
+    }
+    const auto last = input.find_last_not_of(" \t\r\n");
+    return input.substr(first, last - first + 1);
+}
+
+std::string run_command_capture(const std::string& cmd) {
+    std::array<char, 256> buffer{};
+    std::string output;
+
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) {
+        return "";
+    }
+
+    while (fgets(buffer.data(), static_cast<int>(buffer.size()), pipe) != nullptr) {
+        output += buffer.data();
+    }
+
+    pclose(pipe);
+    return trim_copy(output);
+}
+
+bool build_server_host_route_command(const std::string& server_ip, std::string& route_cmd,
+                                     bool* is_local_destination = nullptr) {
+    const std::string route_get = run_command_capture("ip -4 route get " + server_ip);
+    if (route_get.empty()) {
+        return false;
+    }
+
+    bool local_destination = false;
+    if (route_get.rfind("local ", 0) == 0) {
+        local_destination = true;
+    }
+
+    std::istringstream iss(route_get);
+    std::string token;
+    std::string via;
+    std::string dev;
+
+    while (iss >> token) {
+        if (token == "via" && (iss >> token)) {
+            via = token;
+            continue;
+        }
+
+        if (token == "dev" && (iss >> token)) {
+            dev = token;
+            if (dev == "lo") {
+                local_destination = true;
+            }
+            continue;
+        }
+    }
+
+    if (dev.empty()) {
+        return false;
+    }
+
+    route_cmd = "ip route replace " + server_ip + "/32 ";
+    if (!via.empty()) {
+        route_cmd += "via " + via + " ";
+    }
+    route_cmd += "dev " + dev;
+
+    if (is_local_destination) {
+        *is_local_destination = local_destination;
+    }
+
+    return true;
+}
+
+} // namespace
 
 namespace vpn {
 
@@ -103,9 +188,16 @@ bool VpnClient::initialize_networking() {
         server_endpoint_ = asio::ip::udp::endpoint(
             asio::ip::make_address(config_.server_address), 
             config_.server_port);
+
+        if (server_endpoint_.address().is_unspecified()) {
+            std::cerr << "Warning: server address 0.0.0.0 is not a routable remote address; "
+                         "the client will accept the first responder on port "
+                      << config_.server_port << std::endl;
+        }
         
         udp_socket_ = std::make_unique<asio::ip::udp::socket>(*io_context_);
         udp_socket_->open(asio::ip::udp::v4());
+        udp_socket_->non_blocking(true);
         
         return true;
     } catch (const std::exception& e) {
@@ -196,13 +288,31 @@ bool VpnClient::attempt_connection() {
         stats_.packets_sent.fetch_add(1);
         stats_.bytes_sent.fetch_add(auth_msg.size());
 
-        std::cout << "Authenticated key exchange completed successfully" << std::endl;
+        // Wait for server network configuration: 0x04 | client_ip(4) | netmask(4) | gateway(4)
+        std::vector<uint8_t> config_response;
+        if (!wait_for_server_response(0x04, config_response, config_.connect_timeout_seconds)) {
+            set_error("Server configuration timeout");
+            return false;
+        }
 
-        // For now, assign a static IP configuration
-        // In a real implementation, this would come from the server
-        assigned_ip_ = "10.8.0.2";
-        assigned_netmask_ = "255.255.255.0";
-        gateway_ip_ = "10.8.0.1";
+        if (config_response.size() != 13) {
+            set_error("Invalid server configuration payload size");
+            return false;
+        }
+
+        auto parse_ipv4 = [](const uint8_t* bytes) -> std::string {
+            char buffer[INET_ADDRSTRLEN] = {0};
+            if (::inet_ntop(AF_INET, bytes, buffer, sizeof(buffer)) == nullptr) {
+                throw std::runtime_error("Failed to parse IPv4 address");
+            }
+            return std::string(buffer);
+        };
+
+        assigned_ip_ = parse_ipv4(config_response.data() + 1);
+        assigned_netmask_ = parse_ipv4(config_response.data() + 5);
+        gateway_ip_ = parse_ipv4(config_response.data() + 9);
+
+        std::cout << "Authenticated key exchange completed successfully" << std::endl;
 
         // Configure TUN interface
         if (!tun_interface_->configure(assigned_ip_, assigned_netmask_, config_.tun_mtu)) {
@@ -226,20 +336,36 @@ bool VpnClient::attempt_connection() {
 
 bool VpnClient::configure_routes() {
     if (config_.redirect_gateway) {
-        // Add route for VPN server (before default route change)
-        std::string server_route_cmd = "ip route add " + config_.server_address + 
-                                      " via $(ip route | grep default | awk '{print $3}' | head -1)";
-        if (system(server_route_cmd.c_str()) != 0) {
-            std::cerr << "Warning: Failed to add server route" << std::endl;
-        }
-        
-        // Add default route through VPN
-        std::string default_route_cmd = "ip route add default via " + gateway_ip_ + 
-                                       " dev " + tun_interface_->get_interface_name() + 
-                                       " metric 1";
-        if (system(default_route_cmd.c_str()) != 0) {
-            set_error("Failed to add default route through VPN");
+        const bool server_is_loopback = server_endpoint_.address().is_loopback();
+        bool server_is_local_destination = false;
+        std::string server_route_cmd;
+
+        if (!build_server_host_route_command(config_.server_address, server_route_cmd,
+                                             &server_is_local_destination)) {
+            set_error("Failed to resolve route to VPN server before redirect");
             return false;
+        }
+
+        if (server_is_loopback || server_is_local_destination) {
+            // Running client and server on the same host with redirect-gateway creates a routing loop.
+            std::cerr << "Warning: server address " << config_.server_address
+                      << " resolves locally; skipping default gateway redirect to avoid routing loop"
+                      << std::endl;
+        } else {
+            // Pin traffic to VPN server over the pre-existing route before default-route redirect.
+            if (system(server_route_cmd.c_str()) != 0) {
+                set_error("Failed to add route to VPN server before redirect");
+                return false;
+            }
+
+            // Add default route through VPN
+            std::string default_route_cmd = "ip route replace default via " + gateway_ip_ +
+                                           " dev " + tun_interface_->get_interface_name() +
+                                           " metric 1";
+            if (system(default_route_cmd.c_str()) != 0) {
+                set_error("Failed to add default route through VPN");
+                return false;
+            }
         }
     }
     
@@ -259,11 +385,11 @@ void VpnClient::cleanup_routes() {
     if (config_.redirect_gateway) {
         // Remove default route through VPN
         std::string default_route_cmd = "ip route del default via " + gateway_ip_ + 
-                                       " dev " + get_tun_interface_name() + " 2>/dev/null";
+                                       " dev " + get_tun_interface_name() + " metric 1 2>/dev/null";
         system(default_route_cmd.c_str());
         
         // Remove server route
-        std::string server_route_cmd = "ip route del " + config_.server_address + " 2>/dev/null";
+        std::string server_route_cmd = "ip route del " + config_.server_address + "/32 2>/dev/null";
         system(server_route_cmd.c_str());
     }
     
@@ -317,7 +443,7 @@ void VpnClient::handle_udp_receive() {
         std::size_t len = udp_socket_->receive_from(
             asio::buffer(buffer), sender_endpoint, 0, error);
         
-        if (!error && len > 0 && sender_endpoint == server_endpoint_) {
+        if (!error && len > 0 && is_expected_server_sender(sender_endpoint)) {
             buffer.resize(len);
             process_server_packet(buffer);
             
@@ -333,6 +459,18 @@ void VpnClient::handle_tun_receive() {
     if (!tun_interface_->is_open() || !running_.load()) return;
     
     try {
+        const int tun_fd = tun_interface_->get_fd();
+        if (tun_fd < 0) {
+            return;
+        }
+
+        pollfd pfd{};
+        pfd.fd = tun_fd;
+        pfd.events = POLLIN;
+        if (::poll(&pfd, 1, 0) <= 0 || !(pfd.revents & POLLIN)) {
+            return;
+        }
+
         std::vector<uint8_t> packet;
         ssize_t len = tun_interface_->read_packet(packet);
         
@@ -406,10 +544,14 @@ bool VpnClient::wait_for_server_response(uint8_t expected_type, std::vector<uint
             std::size_t len = udp_socket_->receive_from(
                 asio::buffer(buffer), sender_endpoint, 0, error);
             
-            if (!error && len > 0 && sender_endpoint == server_endpoint_) {
+            if (!error && len > 0 && is_expected_server_sender(sender_endpoint)) {
                 buffer.resize(len);
                 
                 if (!buffer.empty() && buffer[0] == expected_type) {
+                    // If config used 0.0.0.0, pin to the first valid server endpoint.
+                    if (server_endpoint_.address().is_unspecified()) {
+                        server_endpoint_ = sender_endpoint;
+                    }
                     response = std::move(buffer);
                     stats_.packets_received.fetch_add(1);
                     stats_.bytes_received.fetch_add(len);
@@ -424,6 +566,20 @@ bool VpnClient::wait_for_server_response(uint8_t expected_type, std::vector<uint
     }
     
     return false; // Timeout
+}
+
+bool VpnClient::is_expected_server_sender(const asio::ip::udp::endpoint& sender) const {
+    if (sender.port() != server_endpoint_.port()) {
+        return false;
+    }
+
+    // 0.0.0.0 is only meaningful as a local bind/listen address; when configured on the
+    // client side we accept a responder on the configured port and pin it after handshake.
+    if (server_endpoint_.address().is_unspecified()) {
+        return true;
+    }
+
+    return sender.address() == server_endpoint_.address();
 }
 
 void VpnClient::handle_disconnection() {
